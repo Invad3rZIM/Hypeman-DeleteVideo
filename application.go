@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/labstack/echo"
 )
 
@@ -57,30 +58,28 @@ func main() {
 //ec2-3-82-204-144.compute-1.amazonaws.com
 
 func main2() string {
-	return "XXX"
-	//tableName := "Users"
-	/*
-			result, err := svc.GetItem(&dynamodb.GetItemInput{
-				TableName: aws.String(tableName),
-				Key: map[string]*dynamodb.AttributeValue{
-					"Username": {
-						S: aws.String("kzimmer"),
-					},
-				},
-			})
-			if err != nil {
-				log.Println(err.Error())
-				return ""
-			}
+	tableName := "Users"
 
-		item := Item{}
-		/*
-			err = dynamodbattribute.UnmarshalMap(result.Item, &item)
-			if err != nil {
-				return fmt.Sprintf("Failed to unmarshal Record, %v", err)
-			}
+	result, err := svc.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"Username": {
+				S: aws.String("kzimmer"),
+			},
+		},
+	})
+	if err != nil {
+		log.Println(err.Error())
+		return ""
+	}
 
-		return fmt.Sprintf("%+v", item)
+	item := Item{}
 
-		return fmt.Sprintf("%+v", svc.ClientInfo)*/
+	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
+	if err != nil {
+		return fmt.Sprintf("Failed to unmarshal Record, %v", err)
+	}
+
+	return fmt.Sprintf("%+v", item)
+
 }
