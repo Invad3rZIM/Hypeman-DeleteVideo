@@ -1,17 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/labstack/echo"
 )
 
 var svc *dynamodb.DynamoDB
@@ -21,6 +20,7 @@ func init() {
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
 	svc = dbConnect()
+
 }
 
 func dbConnect() *dynamodb.DynamoDB {
@@ -39,25 +39,18 @@ func dbConnect() *dynamodb.DynamoDB {
 }
 
 func main() {
+	h := Handler{}
 
-	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
-	e.GET("/ping", func(c echo.Context) error {
-		return c.String(http.StatusOK, os.Getenv("user"))
-	})
+	http.HandleFunc("/video/upload", h.s3UploadHandler)
+	http.HandleFunc("/database/test", xx)
 
-	e.GET("/database", func(c echo.Context) error {
-		return c.String(http.StatusOK, fmt.Sprintf("%+v", main2()))
-	})
+	http.ListenAndServe(":5000", nil)
 
-	e.Logger.Fatal(e.Start(":5000"))
 }
 
 //ec2-3-82-204-144.compute-1.amazonaws.com
 
-func main2() string {
+func xx(w http.ResponseWriter, r *http.Request) {
 	tableName := "Users"
 
 	result, err := svc.GetItem(&dynamodb.GetItemInput{
@@ -70,16 +63,22 @@ func main2() string {
 	})
 	if err != nil {
 		log.Println(err.Error())
-		return ""
+		return
 	}
 
 	item := Item{}
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
 	if err != nil {
-		return fmt.Sprintf("Failed to unmarshal Record, %v", err)
+		json.NewEncoder(w).Encode(fmt.Sprintf("Failed to unmarshal Record, %v", err))
 	}
 
-	return fmt.Sprintf("%+v", item)
+	json.NewEncoder(w).Encode(fmt.Sprintf("%+v", item))
+	return
 
+}
+
+type Item struct {
+	Username, First, Last string
+	Followers, Following  int
 }
