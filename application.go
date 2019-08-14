@@ -1,84 +1,60 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
+	"hypeman/handler"
 	"log"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-)
 
-var svc *dynamodb.DynamoDB
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
-	svc = dbConnect()
-
-}
-
-func dbConnect() *dynamodb.DynamoDB {
-	//dbconnect; env variables located in Elastic Beanstalk
-	//CONFIGURATION -> SOFTWARE -> ENV PROPERTIES
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
-	})
-
-	if err != nil {
-		log.Println(err.Error())
-		log.Fatal(err.Error())
-	}
-
-	return dynamodb.New(sess, aws.NewConfig().WithLogLevel(aws.LogDebugWithHTTPBody))
 }
 
 func main() {
-	h := Handler{}
 
-	http.HandleFunc("/video/upload", h.s3UploadHandler)
-	http.HandleFunc("/database/test", xx)
+	clientOptions := options.Client().ApplyURI("mongodb+srv://kzimmer:Testing123@cluster0-p7s3g.mongodb.net/test?retryWrites=true&w=majority")
 
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.Ping(context.TODO(), nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Connected to MongoDB")
+
+	err = client.Ping(context.Background(), nil)
+
+	h := handler.NewHandler(client)
+
+	go h.DataStore.TimeCache.PerpetualSortRoutine(3)
+	go h.DataStore.TimeCache.UpdateCacheRoutine()
+
+	http.HandleFunc("/video/upload", h.S3UploadHandler)
+	http.HandleFunc("/video/metadata", h.GetVideoMetadataHandler)
+	http.HandleFunc("/video/comments/post", h.PostCommentHandler)
+
+	http.HandleFunc("/video/comments/vote", h.CommentVoteHandler)
+	http.HandleFunc("/video/like", h.VideoLikeHandler)
+	http.HandleFunc("/video/dislike", h.VideoDislikeHandler)
+	http.HandleFunc("/video/laugh", h.VideoLaughHandler)
+	http.HandleFunc("/video/view", h.VideoViewHandler)
+	http.HandleFunc("/video/most", h.GlobalMostXHandler)
+
+	fmt.Println("Serving on localhost :5000")
 	http.ListenAndServe(":5000", nil)
-
-}
-
-//ec2-3-82-204-144.compute-1.amazonaws.com
-
-func xx(w http.ResponseWriter, r *http.Request) {
-	tableName := "Users"
-
-	result, err := svc.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"Username": {
-				S: aws.String("kzimmer"),
-			},
-		},
-	})
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
-	item := Item{}
-
-	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
-	if err != nil {
-		json.NewEncoder(w).Encode(fmt.Sprintf("Failed to unmarshal Record, %v", err))
-	}
-
-	json.NewEncoder(w).Encode(fmt.Sprintf("%+v", item))
-	return
-
-}
-
-type Item struct {
-	Username, First, Last string
-	Followers, Following  int
 }
