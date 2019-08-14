@@ -21,8 +21,11 @@ func init() {
 
 func main() {
 
+	fmt.Println("Launching server...")
+
 	clientOptions := options.Client().ApplyURI("mongodb+srv://kzimmer:Testing123@cluster0-p7s3g.mongodb.net/test?retryWrites=true&w=majority")
 
+	fmt.Println("Applied Client options")
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 
 	if err != nil {
