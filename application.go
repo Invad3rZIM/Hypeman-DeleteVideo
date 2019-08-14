@@ -7,15 +7,13 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
-
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func init() {
-	logrus.SetLevel(logrus.DebugLevel)
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	//	logrus.SetLevel(logrus.DebugLevel)
+	//	logrus.SetFormatter(&logrus.JSONFormatter{})
 
 }
 
